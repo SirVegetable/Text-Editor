@@ -2,10 +2,18 @@
 #include <unistd.h>
 #include <vector>
 #include <termios.h>
+#include <cstdlib>
 
+struct termios original_termios;
+
+void rawModeDisabled(){
+    tcsetattr(STDERR_FILENO,TCSAFLUSH,&original_termios);
+}
 void rawModeEnabled(){
-    struct termios raw;
-    tcgetattr(STDIN_FILENO,&raw);
+    tcgetattr(STDIN_FILENO,&original_termios);
+    std::atexit(rawModeDisabled);
+    
+    struct termios raw = original_termios;
     raw.c_lflag &= ~(ECHO); //turn off echo
     tcsetattr(STDIN_FILENO,TCSAFLUSH,&raw);
 }
