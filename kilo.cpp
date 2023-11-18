@@ -3,19 +3,43 @@
 #include <vector>
 #include <termios.h>
 #include <cstdlib>
+#include <cctype>
+#include <string> 
 
 struct termios original_termios;
+ 
 
+ void terminate(const char *s){
+    std::perror(s);
+    std::exit(1);
+
+ }
+ // function to disable the raw mode
 void rawModeDisabled(){
-    tcsetattr(STDERR_FILENO,TCSAFLUSH,&original_termios);
+
+    if(tcsetattr(STDERR_FILENO,TCSAFLUSH,&original_termios) == -1){
+        terminate("tcsetattr");
+    }
 }
 void rawModeEnabled(){
-    tcgetattr(STDIN_FILENO,&original_termios);
-    std::atexit(rawModeDisabled);
+    if(tcgetattr(STDIN_FILENO,&original_termios)== -1){
+        terminate("tcgetattr");
+    }
+    // causes specified func to be called when program terminates
+    std::atexit(rawModeDisabled); 
     
     struct termios raw = original_termios;
-    raw.c_lflag &= ~(ECHO); //turn off echo
-    tcsetattr(STDIN_FILENO,TCSAFLUSH,&raw);
+    //turn off echo,canonical mode (ICANON) is an input flag, turn off software flow controls
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG |IEXTEN ); 
+    raw.c_iflag &= ~( ICRNL | IXON | BRKINT | ISTRIP | INPCK);
+    raw.c_oflag &= ~(OPOST);
+    raw.c_cflag |= (CS8);
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 1; 
+
+    if(tcsetattr(STDIN_FILENO,TCSAFLUSH,&raw)== -1){
+        terminate("tcsetattr");
+    }
 }
 int main(){
     rawModeEnabled();
@@ -27,7 +51,13 @@ int main(){
         
     }
     for(std::vector<char>::size_type i=0; i< array.size(); i++){
-        std::cout << array[i];
+        if(std::iscntrl(array[i])){
+            std::cout << static_cast<int>(array[i]) << "\n";
+        }
+        else{
+            std::cout << array[i] << "\n";
+        }
+        
     }
     return 0;
 }
