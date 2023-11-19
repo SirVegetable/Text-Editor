@@ -14,6 +14,13 @@
 
 /***Data***/
 
+struct editorConfig{
+    struct termios original_termios;
+
+};
+
+struct editorConfig E;
+
 
 /***Terminal***/
 
@@ -21,6 +28,9 @@ struct termios original_termios;
  
 
  void terminate(const char *s){
+
+    write(STDOUT_FILENO, "\x1b[2J",4);
+    write(STDOUT_FILENO,"\x1b[H",3);
     std::perror(s);
     std::exit(1);
 
@@ -68,12 +78,22 @@ void editorKeyProcessing(){
     char c = editorKeyRead();
     switch(c){
         case CTRL_KEY('q'):
+            write(STDOUT_FILENO, "\x1b[2J",4);
+            write(STDOUT_FILENO,"\x1b[H",3);
             exit(0);
             break;
     }
 }
+void editorDrawRows(){ 
+    for(int y = 0; y < 24; y++){
+        write(STDOUT_FILENO, "~\r\n",3);
+    }
+}
 void editorScreenRefresh(){
-    write(STDOUT_FILENO, "x1b[2J]",4);
+    write(STDOUT_FILENO, "\x1b[2J",4);
+    write(STDOUT_FILENO,"\x1b[H",3);
+    editorDrawRows();
+    write(STDOUT_FILENO,"\x1b[H",3);
 }
 
 /***Init***/
@@ -83,8 +103,6 @@ int main(){
     while(1){
         editorScreenRefresh();
         editorKeyProcessing();
-        std::cout << "done \n";
-        std::cout << "exec\n";
     }
 
     return 0;
