@@ -1,10 +1,21 @@
+/***Include Section***/
+
 #include <iostream> 
 #include <unistd.h>
 #include <vector>
 #include <termios.h>
 #include <cstdlib>
 #include <cctype>
-#include <string> 
+#include <string>
+
+/***Defines***/
+// macro to each value of the ACSCII values - k = 1 is A
+#define CTRL_KEY(k) ((k) & 0x1f)
+
+/***Data***/
+
+
+/***Terminal***/
 
 struct termios original_termios;
  
@@ -41,23 +52,35 @@ void rawModeEnabled(){
         terminate("tcsetattr");
     }
 }
+
+char editorKeyRead(){
+    int nread;
+    char c;
+    while((nread = read(STDIN_FILENO,&c, 1)) != 1){
+        if(nread == -1 && errno != EAGAIN){
+            terminate("read");
+        }
+    }
+    return c; 
+}
+
+void editorKeyProcessing(){
+    char c = editorKeyRead();
+    switch(c){
+        case CTRL_KEY('q'):
+            exit(0);
+            break;
+    }
+}
+
+/***Init***/
 int main(){
     rawModeEnabled();
-    std::vector<char> array; 
-    char c;
     //reads 1 byte, in this case a character at a time for from the standard input stream into char c
-    while(read(STDIN_FILENO,&c,1)==1 && c != 'q'){
-        array.push_back(c);
-        
+    while(1){
+        editorKeyProcessing();
+        std::cout << "done \n";
     }
-    for(std::vector<char>::size_type i=0; i< array.size(); i++){
-        if(std::iscntrl(array[i])){
-            std::cout << static_cast<int>(array[i]) << "\n";
-        }
-        else{
-            std::cout << array[i] << "\n";
-        }
-        
-    }
+
     return 0;
 }
