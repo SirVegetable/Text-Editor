@@ -86,13 +86,34 @@ void editorKeyProcessing(){
     }
 }
 void editorDrawRows(){ 
-    for(int y = 0; y < 24; y++){
+    for(int y = 0; y < E.screenrows; y++){
         write(STDOUT_FILENO, "~\r\n",3);
     }
 }
-int getWindowSize(int *rows, int* cols){
+int getCursorLocation(int *rows, int* cols){
+    if(write(STDOUT_FILENO, "\x1b[6n",4) != 4){
+        return -1;
+    }
+    std::cout << "\n";
+    char c; 
+    while(read(STDIN_FILENO, &c,1) == 1){
+        if(iscntrl(c)){
+            std::cout << "\r\n";
+        }
+        else{
+            std::cout << c << "('" << c << "')\r\n";
+        }
+        editorKeyRead();
+        return -1;
+    }
+}
+int getWindowSize(int* rows, int* cols){
     struct winsize windsize;
     if(ioctl(STDOUT_FILENO,TIOCGWINSZ, &windsize)== -1 || windsize.ws_col == 0){
+        if(write(STDOUT_FILENO, "\x1b[999C\x1b[999B",12) != 12){
+            return getCursorLocation(rows,cols);
+        }
+        editorKeyRead();
         return -1;
     }
     else{
@@ -101,6 +122,7 @@ int getWindowSize(int *rows, int* cols){
         return 0; 
     }
 }
+
 void editorScreenRefresh(){
     write(STDOUT_FILENO, "\x1b[2J",4);
     write(STDOUT_FILENO,"\x1b[H",3);
