@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cctype>
 #include <string>
+#include <sys/ioctl.h>
 
 /***Defines***/
 // macro to each value of the ACSCII values - k = 1 is A
@@ -15,6 +16,8 @@
 /***Data***/
 
 struct editorConfig{
+    int screenrows;
+    int screencols; 
     struct termios original_termios;
 
 };
@@ -23,8 +26,6 @@ struct editorConfig E;
 
 
 /***Terminal***/
-
-struct termios original_termios;
  
 
  void terminate(const char *s){
@@ -38,18 +39,18 @@ struct termios original_termios;
  // function to disable the raw mode
 void rawModeDisabled(){
 
-    if(tcsetattr(STDERR_FILENO,TCSAFLUSH,&original_termios) == -1){
+    if(tcsetattr(STDERR_FILENO,TCSAFLUSH,&E.original_termios) == -1){
         terminate("tcsetattr");
     }
 }
 void rawModeEnabled(){
-    if(tcgetattr(STDIN_FILENO,&original_termios)== -1){
+    if(tcgetattr(STDIN_FILENO,&E.original_termios)== -1){
         terminate("tcgetattr");
     }
     // causes specified func to be called when program terminates
     std::atexit(rawModeDisabled); 
     
-    struct termios raw = original_termios;
+    struct termios raw = E.original_termios;
     //turn off echo,canonical mode (ICANON) is an input flag, turn off software flow controls
     raw.c_lflag &= ~(ECHO | ICANON | ISIG |IEXTEN ); 
     raw.c_iflag &= ~( ICRNL | IXON | BRKINT | ISTRIP | INPCK);
@@ -89,6 +90,17 @@ void editorDrawRows(){
         write(STDOUT_FILENO, "~\r\n",3);
     }
 }
+int getWindowSize(int *rows, int* cols){
+    struct winsize windsize;
+    if(ioctl(STDOUT_FILENO,TIOCGWINSZ, &windsize)== -1 || windsize.ws_col == 0){
+        return -1;
+    }
+    else{
+        *cols = windsize.ws_col;
+        *rows = windsize.ws_row;
+        return 0; 
+    }
+}
 void editorScreenRefresh(){
     write(STDOUT_FILENO, "\x1b[2J",4);
     write(STDOUT_FILENO,"\x1b[H",3);
@@ -97,8 +109,14 @@ void editorScreenRefresh(){
 }
 
 /***Init***/
+void initEditor(){
+    if (getWindowSize(&E.screenrows,&E.screencols) == -1){
+        terminate("getWindowSize");
+    }
+}
 int main(){
     rawModeEnabled();
+    initEditor();
     //reads 1 byte, in this case a character at a time for from the standard input stream into char c
     while(1){
         editorScreenRefresh();
