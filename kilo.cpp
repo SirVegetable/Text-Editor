@@ -8,6 +8,7 @@
 #include <cctype>
 #include <string>
 #include <sys/ioctl.h>
+#include <sstream>
 
 /***Defines***/
 // macro to each value of the ACSCII values - k = 1 is A
@@ -91,21 +92,32 @@ void editorDrawRows(){
     }
 }
 int getCursorLocation(int *rows, int* cols){
+    char buf[32];
+    unsigned int i = 0 ; 
     if(write(STDOUT_FILENO, "\x1b[6n",4) != 4){
         return -1;
     }
-    std::cout << "\n";
-    char c; 
-    while(read(STDIN_FILENO, &c,1) == 1){
-        if(iscntrl(c)){
-            std::cout << "\r\n";
+
+    while( i < sizeof(buf) -1){
+        if(read(STDIN_FILENO,&buf[i],i) != 1){
+            break; 
         }
-        else{
-            std::cout << c << "('" << c << "')\r\n";
+        if(buf[i] == 'R'){
+            break; 
         }
-        editorKeyRead();
+        i++;
+    }
+    buf[i] = '\0';
+    if (buf[0] != '\x1b' || buf[1] != '['){
         return -1;
     }
+    std::istringstream iss(&buf[2]);
+    if(!(iss >> *rows >> *cols)|| iss.get() != ';'){
+        return -1;
+    }
+    editorKeyRead();
+    return -1;
+    
 }
 int getWindowSize(int* rows, int* cols){
     struct winsize windsize;
