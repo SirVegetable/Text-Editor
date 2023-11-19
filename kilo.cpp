@@ -72,14 +72,19 @@ void editorKeyProcessing(){
             break;
     }
 }
+void editorScreenRefresh(){
+    write(STDOUT_FILENO, "x1b[2J]",4);
+}
 
 /***Init***/
 int main(){
     rawModeEnabled();
     //reads 1 byte, in this case a character at a time for from the standard input stream into char c
     while(1){
+        editorScreenRefresh();
         editorKeyProcessing();
         std::cout << "done \n";
+        std::cout << "exec\n";
     }
 
     return 0;
