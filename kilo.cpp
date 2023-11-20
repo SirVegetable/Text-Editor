@@ -88,7 +88,10 @@ void editorKeyProcessing(){
 }
 void editorDrawRows(){ 
     for(int y = 0; y < E.screenrows; y++){
-        write(STDOUT_FILENO, "~\r\n",3);
+        write(STDOUT_FILENO, "~",1);
+        if(y < E.screenrows -1){
+            write(STDOUT_FILENO, "\r\n",2);
+        }
     }
 }
 int getCursorLocation(int *rows, int* cols){
@@ -133,6 +136,19 @@ int getWindowSize(int* rows, int* cols){
         *rows = windsize.ws_row;
         return 0; 
     }
+}
+struct abuf{
+    std::vector<char> b;
+    int len; 
+};
+#define ABUF_INIT {NULL, 0};
+
+void abAppend(abuf &ab, const char* s, int len){
+    size_t oldSize = ab.b.size();
+    ab.b.resize(oldSize + len);
+    std::memcpy(&ab.b[oldSize], s, len);
+    ab.len += len; 
+    
 }
 
 void editorScreenRefresh(){
