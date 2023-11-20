@@ -76,6 +76,11 @@ char editorKeyRead(){
     return c; 
 }
 
+struct abuf{
+    std::vector<char> b;
+    int len; 
+};
+
 void editorKeyProcessing(){
     char c = editorKeyRead();
     switch(c){
@@ -86,11 +91,11 @@ void editorKeyProcessing(){
             break;
     }
 }
-void editorDrawRows(){ 
+void editorDrawRows(abuf &ab){ 
     for(int y = 0; y < E.screenrows; y++){
-        write(STDOUT_FILENO, "~",1);
+        abAppend(ab,"~", 1);
         if(y < E.screenrows -1){
-            write(STDOUT_FILENO, "\r\n",2);
+            abAppend(ab, "\r\n", 2);
         }
     }
 }
@@ -137,25 +142,22 @@ int getWindowSize(int* rows, int* cols){
         return 0; 
     }
 }
-struct abuf{
-    std::vector<char> b;
-    int len; 
-};
-#define ABUF_INIT {NULL, 0};
 
 void abAppend(abuf &ab, const char* s, int len){
     size_t oldSize = ab.b.size();
     ab.b.resize(oldSize + len);
     std::memcpy(&ab.b[oldSize], s, len);
-    ab.len += len; 
+    ab.b.insert(ab.b.end(), s, s + len);
     
 }
 
 void editorScreenRefresh(){
-    write(STDOUT_FILENO, "\x1b[2J",4);
-    write(STDOUT_FILENO,"\x1b[H",3);
-    editorDrawRows();
-    write(STDOUT_FILENO,"\x1b[H",3);
+    abuf ab = {std::vector<char>(),0}; 
+    abAppend(ab, "\x1b[2J", 4);
+    abAppend(ab, "\x1b[H", 3);
+    editorDrawRows(ab);
+    abAppend(ab,"\x1b[H",3);
+    write(STDOUT_FILENO,ab.b.data(),ab.len);
 }
 
 /***Init***/
